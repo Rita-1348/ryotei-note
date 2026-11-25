@@ -117,22 +117,33 @@ export function validateTripInput(
   return null;
 }
 
-/** 予定フォームの入力検証(日付が期間内かは呼び出し側で確認) */
+export type EventField = 'title' | 'endTime' | 'bookingUrl' | 'cost';
+
+/** 予定フォームの入力検証(日付が期間内かは呼び出し側で確認)。誤りのある欄と文言を返す。 */
 export function validateEventFields(v: {
   title: string;
   time?: string;
   endTime?: string;
   bookingUrl?: string;
   cost?: string;
-}): string | null {
-  if (!v.title.trim()) return '予定名を入力してください。';
-  if (v.endTime && !v.time) return '終了時刻を入れるときは、開始時刻も入れてください。';
-  if (v.bookingUrl && !isHttpUrl(v.bookingUrl.trim())) return '予約ページのURLは http:// または https:// から始まる形で入力してください。';
+}): { field: EventField; message: string } | null {
+  if (!v.title.trim()) return { field: 'title', message: '予定名を入力してください。' };
+  if (v.endTime && !v.time) return { field: 'endTime', message: '終了時刻を入れるときは、開始時刻も入れてください。' };
+  if (v.bookingUrl && !isHttpUrl(v.bookingUrl.trim())) {
+    return { field: 'bookingUrl', message: '予約ページのURLは http:// または https:// から始まる形で入力してください。' };
+  }
   if (v.cost && v.cost.trim()) {
     const n = Number(v.cost.replace(/[,，円\s]/g, ''));
-    if (!Number.isInteger(n) || n < 0 || n > MAX_COST) return '費用は0以上の整数(円)で入力してください。';
+    if (!Number.isInteger(n) || n < 0 || n > MAX_COST) return { field: 'cost', message: '費用は0以上の整数(円)で入力してください。' };
   }
   return null;
+}
+
+/** validateTripInput の文言から、誤りのある欄を判定する */
+export function tripErrorField(message: string): 'name' | 'start' | 'end' {
+  if (message.startsWith('旅行名')) return 'name';
+  if (message.startsWith('開始日')) return 'start';
+  return 'end';
 }
 
 export function parseCost(s: string): number | undefined {

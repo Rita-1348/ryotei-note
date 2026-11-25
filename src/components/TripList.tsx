@@ -103,7 +103,9 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
 
   return (
     <main>
-      <h1>旅程ノート</h1>
+      <h1 tabIndex={-1} data-focus-fallback>
+        旅程ノート
+      </h1>
       <p className="hint">このブラウザに保存されます。別の端末へは書き出し・読み込みで移せます</p>
       {trips.length > 0 && (
         <p className={needing.length === 0 ? 'hint' : 'hint hint-warn'}>
@@ -153,17 +155,23 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
             const active = status.startsWith('旅行中');
             return (
               <li key={t.id} className="card">
-                <p className={active ? 'status status-active' : 'status'}>{status}</p>
-                <h2 className="wrap">{t.name}</h2>
-                <p className="sub">{formatRange(t.startDate, t.endDate)}</p>
-                <p className="sub">
+                <div className="status-row">
+                  <p className={active ? 'status status-active' : 'status'}>{status}</p>
+                  {needsBackup(t, backups) && (
+                    <span className="badge-warn" role="img" aria-label="未バックアップ。書き出してコピーを残してください">
+                      未バックアップ
+                    </span>
+                  )}
+                </div>
+                <h2 className="trip-name wrap">{t.name}</h2>
+                <p className="period">{formatRange(t.startDate, t.endDate)}</p>
+                <p className="period">
                   予定 {t.events.length}件 ・ 持ち物 {t.checklist.filter((c) => c.done).length}/{t.checklist.length}
-                  {needsBackup(t, backups) && <span className="badge-warn"> ・ 未バックアップ</span>}
                 </p>
-                <div className="row">
-                  <button type="button" className="btn btn-primary" onClick={() => onOpen(t.id)}>
-                    {active ? '今日の予定を見る' : '開く'}
-                  </button>
+                <button type="button" className="btn btn-primary full" onClick={() => onOpen(t.id)}>
+                  {active ? '今日の予定を見る' : '開く'}
+                </button>
+                <div className="card-actions">
                   <button type="button" className="btn" onClick={() => setMode({ kind: 'edit', id: t.id })}>
                     編集
                   </button>
@@ -208,8 +216,8 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
 
       {deleting && (
         <ConfirmDialog
-          title="旅行を削除しますか?"
-          message={`「${deleting.name}」と、その予定${deleting.events.length}件を削除します。元に戻せません。`}
+          title={`「${deleting.name}」を削除しますか?`}
+          message={`この旅行と、その予定${deleting.events.length}件を削除します。元に戻せません。`}
           confirmLabel="削除する"
           onConfirm={doDelete}
           onCancel={() => setDeleting(null)}

@@ -83,15 +83,15 @@ describe('validateTripInput', () => {
 });
 
 describe('validateEventFields', () => {
-  it('予定名は必須', () => expect(validateEventFields({ title: '  ' })).toMatch(/予定名/));
-  it('終了だけは不可', () => expect(validateEventFields({ title: 'x', endTime: '10:00' })).toMatch(/開始時刻/));
+  it('予定名は必須', () => expect(validateEventFields({ title: '  ' })?.message).toMatch(/予定名/));
+  it('終了だけは不可', () => expect(validateEventFields({ title: 'x', endTime: '10:00' })?.message).toMatch(/開始時刻/));
   it('予約URLは http(s) のみ', () => {
-    expect(validateEventFields({ title: 'x', bookingUrl: 'javascript:alert(1)' })).toMatch(/URL/);
+    expect(validateEventFields({ title: 'x', bookingUrl: 'javascript:alert(1)' })?.message).toMatch(/URL/);
     expect(validateEventFields({ title: 'x', bookingUrl: 'https://example.com/r/1' })).toBeNull();
   });
   it('費用は0以上の整数', () => {
-    expect(validateEventFields({ title: 'x', cost: '-5' })).toMatch(/費用/);
-    expect(validateEventFields({ title: 'x', cost: '12.5' })).toMatch(/費用/);
+    expect(validateEventFields({ title: 'x', cost: '-5' })?.message).toMatch(/費用/);
+    expect(validateEventFields({ title: 'x', cost: '12.5' })?.message).toMatch(/費用/);
     expect(validateEventFields({ title: 'x', cost: '1,200円' })).toBeNull();
   });
 });

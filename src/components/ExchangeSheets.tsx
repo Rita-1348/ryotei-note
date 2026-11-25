@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import Sheet from './Sheet';
+import Field from './Field';
 import { exportFileName, exportTrip, MAX_FILE_BYTES } from '../lib/exchange';
 import { markBackup } from '../lib/storage';
 import type { Trip } from '../lib/trips';
@@ -45,17 +46,18 @@ export function ExportSheet({ trip, onClose }: { trip: Trip; onClose: () => void
     <Sheet label="旅行を書き出す" onClose={onClose}>
       <div className="form">
         <h2 className="wrap">「{trip.name}」を書き出す</h2>
-        <p className="hint">この文字を別の端末の「旅行を読み込む」に貼り付けると、新しい旅行として追加されます。</p>
-        <label>
-          書き出しデータ
-          <textarea id="export-text" ref={areaRef} className="code" readOnly value={text} onFocus={(e) => e.currentTarget.select()} />
-        </label>
-        {status && (
-          <p className="banner banner-ok wrap" role="status">
-            {status}
-          </p>
-        )}
-        <div className="row">
+        <div className="form-body">
+          <p className="hint">この文字を別の端末の「旅行を読み込む」に貼り付けると、新しい旅行として追加されます。</p>
+          <Field id="export-text" label="書き出しデータ">
+            {(p) => <textarea {...p} ref={areaRef} className="code" readOnly value={text} onFocus={(e) => e.currentTarget.select()} />}
+          </Field>
+          {status && (
+            <p className="banner banner-ok wrap" role="status">
+              {status}
+            </p>
+          )}
+        </div>
+        <div className="form-actions">
           <button type="button" className="btn" onClick={onClose}>
             閉じる
           </button>
@@ -96,21 +98,17 @@ export function ImportSheet({ onImport, onClose }: { onImport: (text: string) =>
     <Sheet label="旅行を読み込む" onClose={onClose}>
       <div className="form">
         <h2>旅行を読み込む</h2>
-        <p className="hint">読み込むたびに、新しい旅行として追加されます。既存の旅行は変更されません。</p>
-        <button type="button" className="btn btn-big" style={{ width: '100%', marginBottom: 14 }} onClick={() => fileRef.current?.click()}>
-          ファイルを選ぶ
-        </button>
-        <input ref={fileRef} type="file" accept=".json,application/json" onChange={onFile} hidden aria-label="旅行ファイルを選択" />
-        <label>
-          または、書き出したデータを貼り付け
-          <textarea id="import-text" className="code" value={text} onChange={(e) => setText(e.target.value)} placeholder='{"format": "ryotei-note", ...' />
-        </label>
-        {error && (
-          <p className="error wrap" role="alert">
-            {error} 既存の旅行は変更されていません。
-          </p>
-        )}
-        <div className="row">
+        <div className="form-body">
+          <p className="hint">読み込むたびに、新しい旅行として追加されます。既存の旅行は変更されません。</p>
+          <button type="button" className="btn btn-big full" onClick={() => fileRef.current?.click()}>
+            ファイルを選ぶ
+          </button>
+          <input ref={fileRef} type="file" accept=".json,application/json" onChange={onFile} hidden aria-label="旅行ファイルを選択" />
+          <Field id="import-text" label="または、書き出したデータを貼り付け" error={error ? `${error} 既存の旅行は変更されていません。` : null}>
+            {(p) => <textarea {...p} className="code" value={text} onChange={(e) => setText(e.target.value)} placeholder='{"format": "ryotei-note", ...' />}
+          </Field>
+        </div>
+        <div className="form-actions">
           <button type="button" className="btn" onClick={onClose}>
             キャンセル
           </button>

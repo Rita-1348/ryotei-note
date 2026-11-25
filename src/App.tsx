@@ -64,7 +64,7 @@ export default function App() {
   const trip = openId ? trips.find((t) => t.id === openId) : undefined;
 
   return (
-    <div className="app">
+    <div className={trip ? 'app app-detail' : 'app'}>
       {warning && (
         <p className="banner banner-error" role="alert">
           {warning}

@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useModal } from './useModal';
 
 interface Props {
   title: string;
@@ -9,24 +11,20 @@ interface Props {
 }
 
 export default function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    cancelRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
+  useModal(ref, onCancel, () => cancelRef.current);
 
-  return (
+  return createPortal(
     <div className="overlay">
-      <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby="dlg-msg">
-        <h2 id="dlg-title">{title}</h2>
+      <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby="dlg-msg" ref={ref}>
+        <h2 id="dlg-title" className="wrap">
+          {title}
+        </h2>
         <p id="dlg-msg" className="wrap">
           {message}
         </p>
-        <div className="row">
+        <div className="dialog-actions">
           <button type="button" className="btn" ref={cancelRef} onClick={onCancel}>
             キャンセル
           </button>
@@ -35,6 +33,7 @@ export default function ConfirmDialog({ title, message, confirmLabel, onConfirm,
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
