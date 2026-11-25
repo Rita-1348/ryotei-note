@@ -4,7 +4,7 @@ import { validateTripInput, type Trip } from '../lib/trips';
 interface Props {
   trip?: Trip;
   /** 保存処理。失敗時はエラー文を返す */
-  onSubmit: (name: string, start: string, end: string) => string | null;
+  onSubmit: (v: { name: string; start: string; end: string; destination: string }) => string | null;
   onCancel: () => void;
 }
 
@@ -12,11 +12,14 @@ export default function TripForm({ trip, onSubmit, onCancel }: Props) {
   const [name, setName] = useState(trip?.name ?? '');
   const [start, setStart] = useState(trip?.startDate ?? '');
   const [end, setEnd] = useState(trip?.endDate ?? '');
+  const [destination, setDestination] = useState(trip?.destination ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const err = validateTripInput(name, start, end, trip?.events) ?? onSubmit(name.trim(), start, end);
+    const err =
+      validateTripInput(name, start, end, trip?.events) ??
+      onSubmit({ name: name.trim(), start, end, destination: destination.trim() });
     setError(err);
   };
 
@@ -35,6 +38,11 @@ export default function TripForm({ trip, onSubmit, onCancel }: Props) {
         終了日（必須）
         <input type="date" value={end} min={start || undefined} onChange={(e) => setEnd(e.target.value)} required />
       </label>
+      <label>
+        目的地（任意・天気表示用）
+        <input type="text" value={destination} onChange={(e) => setDestination(e.target.value)} maxLength={60} placeholder="例: 京都市 / 箱根町" />
+      </label>
+      <p className="hint">目的地を入れると、旅行詳細に天気を表示します。入力した地名は天気サービス(Open-Meteo)へ送信されます。空欄なら何も送信しません。</p>
       {error && (
         <p className="error wrap" role="alert">
           {error}

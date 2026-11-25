@@ -2,6 +2,7 @@ import { normalizeTrip, type Trip } from './trips';
 
 export const STORAGE_KEY = 'ryotei-note:data';
 const VERSION = 1;
+const BACKUP_KEY = 'ryotei-note:backups';
 
 export interface LoadResult {
   trips: Trip[];
@@ -41,25 +42,31 @@ export function loadTrips(): LoadResult {
   }
 }
 
-const BACKUP_KEY = 'ryotei-note:last-backup';
-
-/** 最後に書き出し(バックアップ)した時刻。なければ null */
-export function getLastBackup(): Date | null {
+/** 旅行ごとの最後のバックアップ(書き出し)時刻 */
+export function getBackupMap(): Record<string, string> {
   try {
-    const v = localStorage.getItem(BACKUP_KEY);
-    const d = v ? new Date(v) : null;
-    return d && !Number.isNaN(d.getTime()) ? d : null;
+    const v = JSON.parse(localStorage.getItem(BACKUP_KEY) ?? '{}');
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
   } catch {
-    return null;
+    return {};
   }
 }
 
-export function markBackup(): void {
+export function markBackup(tripId: string): void {
   try {
-    localStorage.setItem(BACKUP_KEY, new Date().toISOString());
+    const m = getBackupMap();
+    m[tripId] = new Date().toISOString();
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(m));
   } catch {
     /* 記録できなくても書き出し自体は成功 */
   }
+}
+
+/** 書き出していない、または書き出し後に変更がある旅行か */
+export function needsBackup(trip: Trip, map: Record<string, string>): boolean {
+  const b = map[trip.id];
+  if (!b) return true;
+  return !!trip.updatedAt && trip.updatedAt > b;
 }
 
 /** ブラウザに「容量不足でも消さないで」と要求する(対応していない端末では何もしない) */

@@ -240,6 +240,69 @@ textarea.code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
 .dialog .row { justify-content: flex-end; }
 .dialog .btn { flex: 1; }
 
+/* 表示切り替え(予定 / 持ち物 / 費用) */
+.seg { display: flex; gap: 0; margin: 10px 0 0; border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+.seg button {
+  flex: 1; min-height: 44px; font: inherit; font-size: 1rem; color: var(--text);
+  background: var(--surface); border: 0; border-left: 1.5px solid var(--line); cursor: pointer; touch-action: manipulation;
+}
+.seg button:first-child { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.seg button[aria-pressed="true"]::before { content: "✓ "; }
+
+/* 今日カード */
+.today { margin: 14px 0 4px; padding: 14px; border: 2px solid var(--accent); border-radius: 14px; background: var(--accent-soft); }
+.today p { margin: 0 0 6px; }
+.today-label { font-weight: 700; color: var(--accent-text); font-size: 0.95rem; }
+.today-main { font-size: 1.25rem; font-weight: 700; line-height: 1.4; }
+.today-time { font-variant-numeric: tabular-nums; color: var(--accent-text); margin-right: 4px; }
+.map-btn-lg { min-height: 52px; background: var(--accent); color: var(--on-accent); margin-top: 4px; }
+.weather { margin: 0 0 4px; }
+
+/* 予定の補足表示 */
+.time-col { min-width: 0; }
+.end-time { margin: 0; font-size: 0.85rem; color: var(--sub); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip {
+  display: inline-block; margin-right: 8px; padding: 0 8px; font-size: 0.78rem; font-weight: 700; line-height: 1.6;
+  color: var(--accent-text); border: 1.5px solid var(--accent-text); border-radius: 8px; vertical-align: 2px;
+}
+.booking { margin: 4px 0 0; }
+.booking a { color: var(--accent-text); font-weight: 700; }
+.cost { margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+.event .row { align-items: center; }
+
+/* 一覧画面 */
+.status { margin: 0 0 2px; font-size: 0.9rem; font-weight: 700; color: var(--sub); }
+.status-active { color: var(--accent-text); }
+.status-active::before { content: "● "; }
+.badge-warn { color: var(--danger); font-weight: 600; }
+
+/* 持ち物・費用 */
+.count { font-size: 0.9rem; font-weight: 400; color: var(--sub); margin-left: 6px; }
+.inline-form { display: flex; gap: 8px; align-items: flex-end; margin: 8px 0 12px; }
+.inline-form .grow { flex: 1; min-width: 0; margin-bottom: 0; }
+.inline-form .btn { flex: none; }
+.checks { list-style: none; padding: 0; margin: 0 0 12px; }
+.checks li { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); padding: 4px 0; }
+.check { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; min-height: 48px; margin: 0; font-weight: 400; cursor: pointer; }
+.check input { width: 26px; height: 26px; min-height: 0; margin: 0; flex: none; accent-color: var(--accent); }
+.check .done { text-decoration: line-through; color: var(--sub); }
+.empty-note { color: var(--sub); margin: 12px 0; }
+.total { padding: 14px; border: 1.5px solid var(--line); border-radius: 14px; margin: 8px 0 12px; }
+.total p { margin: 0; }
+.total-n { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sec { margin: 16px 0 4px; font-size: 1rem; color: var(--sub); }
+.sum-list { list-style: none; padding: 0; margin: 0; }
+.sum-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* 予定フォームの詳細欄 */
+.more { margin: 0 0 14px; border: 1.5px solid var(--line); border-radius: 12px; padding: 0 12px; }
+.more summary { min-height: 48px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+.more[open] { padding-bottom: 4px; }
+input:disabled { opacity: 0.5; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* 入力フォーム: 画面下から出るシート */
 .sheet-overlay { align-items: flex-end; padding: 0; }
 .sheet {

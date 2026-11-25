@@ -28,6 +28,27 @@ function fromUtc(ms: number): string {
   return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}`;
 }
 
+export function addDays(s: string, n: number): string {
+  return fromUtc(toUtc(s) + n * 86400000);
+}
+
+/** "HH:MM" → 0時からの分 */
+export function toMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+export function nowMinutes(now: Date = new Date()): number {
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+export function formatDuration(min: number): string {
+  if (min < 60) return `${min}分`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}時間` : `${h}時間${m}分`;
+}
+
 export function daysBetween(start: string, end: string): number {
   return Math.round((toUtc(end) - toUtc(start)) / 86400000);
 }

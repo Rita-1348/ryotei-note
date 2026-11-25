@@ -15,7 +15,7 @@ export function ExportSheet({ trip, onClose }: { trip: Trip; onClose: () => void
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
-      markBackup();
+      markBackup(trip.id);
       setStatus('コピーしました。別の端末で「読み込む」に貼り付けてください。');
     } catch {
       areaRef.current?.focus();
@@ -34,7 +34,7 @@ export function ExportSheet({ trip, onClose }: { trip: Trip; onClose: () => void
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      markBackup();
+      markBackup(trip.id);
       setStatus('ファイルに書き出しました。');
     } catch {
       setStatus('ファイルの書き出しに失敗しました。コピーを使ってください。');

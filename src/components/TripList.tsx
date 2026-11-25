@@ -2,12 +2,13 @@ import { useState } from 'react';
 import TripForm from './TripForm';
 import ConfirmDialog from './ConfirmDialog';
 import Sheet from './Sheet';
+import DuplicateForm from './DuplicateForm';
 import InstallHint from './InstallHint';
 import { ExportSheet, ImportSheet } from './ExchangeSheets';
-import { formatRange } from '../lib/dates';
+import { daysBetween, formatRange, todayString } from '../lib/dates';
 import { MAX_FILE_BYTES, parseImport } from '../lib/exchange';
-import { makeId, type Trip } from '../lib/trips';
-import { getLastBackup } from '../lib/storage';
+import { duplicateTrip, makeId, validateTripInput, type Trip } from '../lib/trips';
+import { getBackupMap, markBackup, needsBackup } from '../lib/storage';
 
 interface Props {
   trips: Trip[];
@@ -16,39 +17,61 @@ interface Props {
   missingTrip: boolean;
 }
 
-function backupLabel(d: Date): string {
-  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
-  return days <= 0 ? '今日' : `${days}日前`;
-}
+type Mode = { kind: 'none' } | { kind: 'create' } | { kind: 'edit'; id: string } | { kind: 'duplicate'; id: string };
 
-type Mode ={ kind: 'none' } | { kind: 'create' } | { kind: 'edit'; id: string };
+/** 出発までの日数・旅行中・終了の表示 */
+export function tripStatus(t: Trip, today: string): string {
+  if (today < t.startDate) return `出発まであと${daysBetween(today, t.startDate)}日`;
+  if (today <= t.endDate) return `旅行中(${daysBetween(t.startDate, today) + 1}日目)`;
+  return '終了';
+}
 
 export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props) {
   const [mode, setMode] = useState<Mode>({ kind: 'none' });
   const [deleting, setDeleting] = useState<Trip | null>(null);
   const [exporting, setExporting] = useState<Trip | null>(null);
   const [importing, setImporting] = useState(false);
-  const [backupAt, setBackupAt] = useState<Date | null>(getLastBackup);
+  const [backups, setBackups] = useState(getBackupMap);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
+  const today = todayString();
 
   const ok = (text: string) => setMessage({ type: 'ok', text });
   const fail = (text: string) => setMessage({ type: 'error', text });
   const closeForm = () => setMode({ kind: 'none' });
 
-  const create = (name: string, start: string, end: string) => {
-    const err = onCommit([...trips, { id: makeId(), name, startDate: start, endDate: end, events: [] }]);
+  const create = (v: { name: string; start: string; end: string; destination: string }) => {
+    const err = onCommit([
+      ...trips,
+      { id: makeId(), name: v.name, startDate: v.start, endDate: v.end, events: [], checklist: [], ...(v.destination ? { destination: v.destination } : {}) },
+    ]);
     if (!err) {
       closeForm();
-      ok(`「${name}」を作成しました。`);
+      ok(`「${v.name}」を作成しました。`);
     }
     return err;
   };
 
-  const edit = (id: string) => (name: string, start: string, end: string) => {
-    const err = onCommit(trips.map((t) => (t.id === id ? { ...t, name, startDate: start, endDate: end } : t)));
+  const edit = (id: string) => (v: { name: string; start: string; end: string; destination: string }) => {
+    const err = onCommit(
+      trips.map((t) =>
+        t.id === id ? { ...t, name: v.name, startDate: v.start, endDate: v.end, destination: v.destination || undefined } : t,
+      ),
+    );
     if (!err) {
       closeForm();
-      ok(`「${name}」を更新しました。`);
+      ok(`「${v.name}」を更新しました。`);
+    }
+    return err;
+  };
+
+  const duplicate = (src: Trip) => (name: string, start: string) => {
+    const copy = duplicateTrip(src, name, start);
+    const bad = validateTripInput(copy.name, copy.startDate, copy.endDate, copy.events);
+    if (bad) return bad;
+    const err = onCommit([...trips, copy]);
+    if (!err) {
+      closeForm();
+      ok(`「${copy.name}」を作成しました(${formatRange(copy.startDate, copy.endDate)})。`);
     }
     return err;
   };
@@ -68,22 +91,25 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
     if ('error' in res) return `読み込めませんでした。${res.error}`;
     const err = onCommit([...trips, res.trip]);
     if (err) return err;
+    markBackup(res.trip.id); // 読み込み元のデータが手元にあるので、バックアップ済みとして扱う
+    setBackups(getBackupMap());
     setImporting(false);
     ok(`「${res.trip.name}」を新しい旅行として読み込みました。`);
     return null;
   };
 
-  const editing = mode.kind === 'edit' ? trips.find((t) => t.id === mode.id) : undefined;
+  const target = mode.kind === 'edit' || mode.kind === 'duplicate' ? trips.find((t) => t.id === mode.id) : undefined;
+  const needing = trips.filter((t) => needsBackup(t, backups));
 
   return (
     <main>
       <h1>旅程ノート</h1>
       <p className="hint">このブラウザに保存されます。別の端末へは書き出し・読み込みで移せます</p>
       {trips.length > 0 && (
-        <p className={backupAt ? 'hint' : 'hint hint-warn'}>
-          {backupAt
-            ? `最後のバックアップ: ${backupLabel(backupAt)}`
-            : 'まだバックアップがありません。スマホのデータが消えたときに備え、各旅行の「書き出す」でコピーを残してください。'}
+        <p className={needing.length === 0 ? 'hint' : 'hint hint-warn'}>
+          {needing.length === 0
+            ? 'すべての旅行をバックアップ済みです。'
+            : `${needing.length}件の旅行が未バックアップ、または書き出し後に変更されています。「書き出す」でコピーを残してください。`}
         </p>
       )}
       {missingTrip && (
@@ -102,9 +128,14 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
           <TripForm onSubmit={create} onCancel={closeForm} />
         </Sheet>
       )}
-      {mode.kind === 'edit' && editing && (
+      {mode.kind === 'edit' && target && (
         <Sheet label="旅行を編集" onClose={closeForm}>
-          <TripForm key={editing.id} trip={editing} onSubmit={edit(editing.id)} onCancel={closeForm} />
+          <TripForm key={target.id} trip={target} onSubmit={edit(target.id)} onCancel={closeForm} />
+        </Sheet>
+      )}
+      {mode.kind === 'duplicate' && target && (
+        <Sheet label="旅行を複製" onClose={closeForm}>
+          <DuplicateForm key={target.id} trip={target} onSubmit={duplicate(target)} onCancel={closeForm} />
         </Sheet>
       )}
 
@@ -117,27 +148,38 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
         </section>
       ) : (
         <ul className="trip-list">
-          {trips.map((t) => (
-            <li key={t.id} className="card">
-              <h2 className="wrap">{t.name}</h2>
-              <p className="sub">{formatRange(t.startDate, t.endDate)}</p>
-              <p className="sub">予定 {t.events.length}件</p>
-              <div className="row">
-                <button type="button" className="btn btn-primary" onClick={() => onOpen(t.id)}>
-                  開く
-                </button>
-                <button type="button" className="btn" onClick={() => setMode({ kind: 'edit', id: t.id })}>
-                  編集
-                </button>
-                <button type="button" className="btn" onClick={() => setExporting(t)}>
-                  書き出す
-                </button>
-                <button type="button" className="btn btn-danger-outline" onClick={() => setDeleting(t)}>
-                  削除
-                </button>
-              </div>
-            </li>
-          ))}
+          {trips.map((t) => {
+            const status = tripStatus(t, today);
+            const active = status.startsWith('旅行中');
+            return (
+              <li key={t.id} className="card">
+                <p className={active ? 'status status-active' : 'status'}>{status}</p>
+                <h2 className="wrap">{t.name}</h2>
+                <p className="sub">{formatRange(t.startDate, t.endDate)}</p>
+                <p className="sub">
+                  予定 {t.events.length}件 ・ 持ち物 {t.checklist.filter((c) => c.done).length}/{t.checklist.length}
+                  {needsBackup(t, backups) && <span className="badge-warn"> ・ 未バックアップ</span>}
+                </p>
+                <div className="row">
+                  <button type="button" className="btn btn-primary" onClick={() => onOpen(t.id)}>
+                    {active ? '今日の予定を見る' : '開く'}
+                  </button>
+                  <button type="button" className="btn" onClick={() => setMode({ kind: 'edit', id: t.id })}>
+                    編集
+                  </button>
+                  <button type="button" className="btn" onClick={() => setExporting(t)}>
+                    書き出す
+                  </button>
+                  <button type="button" className="btn" onClick={() => setMode({ kind: 'duplicate', id: t.id })}>
+                    複製
+                  </button>
+                  <button type="button" className="btn btn-danger-outline" onClick={() => setDeleting(t)}>
+                    削除
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -158,7 +200,7 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
           trip={exporting}
           onClose={() => {
             setExporting(null);
-            setBackupAt(getLastBackup());
+            setBackups(getBackupMap());
           }}
         />
       )}

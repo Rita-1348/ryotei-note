@@ -1,7 +1,8 @@
 import { normalizeTrip, makeId, type Trip } from './trips';
 
 export const FILE_FORMAT = 'ryotei-note';
-export const FILE_VERSION = 1;
+/** 2: 予定の種類・終了時刻・予約・費用、持ち物リスト、目的地を追加(1のファイルも読み込める) */
+export const FILE_VERSION = 2;
 export const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 export function exportTrip(trip: Trip): string {
@@ -14,7 +15,20 @@ export function exportTrip(trip: Trip): string {
         name: trip.name,
         startDate: trip.startDate,
         endDate: trip.endDate,
-        events: trip.events.map(({ date, title, time, place, memo }) => ({ date, title, time, place, memo })),
+        destination: trip.destination,
+        events: trip.events.map(({ date, title, time, endTime, kind, place, memo, bookingNo, bookingUrl, cost }) => ({
+          date,
+          title,
+          time,
+          endTime,
+          kind,
+          place,
+          memo,
+          bookingNo,
+          bookingUrl,
+          cost,
+        })),
+        checklist: trip.checklist.map(({ text, done }) => ({ text, done })),
       },
     },
     null,
@@ -42,7 +56,7 @@ export function parseImport(text: string, existing: Trip[]): { trip: Trip } | { 
   if (d.version > FILE_VERSION) {
     return { error: `新しい形式(バージョン${d.version})のファイルです。アプリを更新してから読み込んでください。` };
   }
-  if (d.version !== FILE_VERSION) return { error: `未対応のバージョン(${d.version})です。` };
+  if (d.version < 1 || !Number.isInteger(d.version)) return { error: `未対応のバージョン(${d.version})です。` };
   const res = normalizeTrip(d.trip, false);
   if ('error' in res) return { error: `ファイルの内容に問題があります: ${res.error}` };
   const trip = res.trip;
