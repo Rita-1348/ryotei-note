@@ -76,6 +76,11 @@ export function formatFullDay(s: string): string {
   return `${dt.getUTCFullYear()}年${dt.getUTCMonth() + 1}月${dt.getUTCDate()}日（${WEEK[dt.getUTCDay()]}）`;
 }
 
+/** 旅行詳細のヘッダー用(1行に収めるため年と泊数を省く) */
+export function formatRangeShort(start: string, end: string): string {
+  return `${formatDay(start)} 〜 ${formatDay(end)}`;
+}
+
 export function formatRange(start: string, end: string): string {
   const n = daysBetween(start, end);
   const label = n === 0 ? '日帰り' : `${n}泊${n + 1}日`;

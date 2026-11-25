@@ -2,6 +2,19 @@ import { useEffect, useRef, type RefObject } from 'react';
 
 let openCount = 0;
 
+// タップしてもボタンにフォーカスが移らない環境(iPhone の Safari など)でも起点へ戻せるよう、直前に押された要素を覚えておく
+let lastTrigger: HTMLElement | null = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'click',
+    (e) => {
+      const el = (e.target as Element | null)?.closest<HTMLElement>('button, a, summary, [tabindex]');
+      if (el) lastTrigger = el;
+    },
+    true,
+  );
+}
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
 /**
@@ -14,7 +27,9 @@ export function useModal(ref: RefObject<HTMLElement | null>, onClose: () => void
   closeRef.current = onClose;
 
   useEffect(() => {
-    const origin = document.activeElement as HTMLElement | null;
+    // 直前に押された要素(=開いた操作)を優先し、なければ現在のフォーカス位置
+    const active = document.activeElement as HTMLElement | null;
+    const origin = lastTrigger?.isConnected ? lastTrigger : active;
     const root = document.getElementById('root');
     openCount++;
     root?.setAttribute('inert', '');

@@ -6,7 +6,7 @@ import Checklist from './Checklist';
 import Costs from './Costs';
 import TodayCard from './TodayCard';
 import { onTabKeyDown } from './tabs';
-import { formatDay, formatFullDay, formatRange, listDays, nowMinutes, todayString } from '../lib/dates';
+import { formatDay, formatFullDay, formatRangeShort, listDays, nowMinutes, todayString } from '../lib/dates';
 import { nextEvent } from '../lib/today';
 import { fetchWeather, type WeatherResult } from '../lib/weather';
 import {
@@ -135,11 +135,11 @@ export default function TripDetail({ trip, otherTrips, onBack, onUpdate }: Props
       <header className="detail-head">
         <div className="topbar">
           <button type="button" className="back-btn" onClick={onBack} aria-label="旅行一覧へ戻る">
-            ←
+            ‹
           </button>
           <div className="topbar-text">
             <h1 className="wrap">{trip.name}</h1>
-            <p className="period">{formatRange(trip.startDate, trip.endDate)}</p>
+            <p className="period">{formatRangeShort(trip.startDate, trip.endDate)}</p>
           </div>
         </div>
 
@@ -233,67 +233,67 @@ export default function TripDetail({ trip, otherTrips, onBack, onUpdate }: Props
                 {dayEvents.map((e, i) => (
                   <li key={e.id}>
                     {i === untimedStart && <p className="group-label">時間未定</p>}
-                    <article className="event">
-                      {(e.time || e.kind) && (
-                        <div className="event-top">
-                          {e.time && <span className="time">{e.time}</span>}
-                          {e.endTime && e.time && (
+                    <article className={e.time && e.endTime && e.endTime < e.time ? 'event event-stack' : 'event'}>
+                      {e.time && (
+                        <div className="event-time">
+                          <span className="time">{e.time}</span>
+                          {e.endTime && (
                             <span className="end-time">
                               〜{e.endTime < e.time ? '翌' : ''}
                               {e.endTime}
                             </span>
                           )}
-                          {e.kind && <span className="chip">{e.kind}</span>}
                         </div>
                       )}
-                      <h3 className="event-title wrap">{e.title}</h3>
-                      {e.place && <p className="place wrap">{e.place}</p>}
-                      {e.place && (
-                        <a className="text-link" href={mapsUrl(e.place)} target="_blank" rel="noopener noreferrer">
-                          地図で開く
-                        </a>
-                      )}
-                      {(e.bookingNo || e.bookingUrl) && (
-                        <p className="booking wrap">
-                          {e.bookingNo && (
-                            <span>
-                              予約番号: <strong>{e.bookingNo}</strong>
-                            </span>
+                      <div className="event-main">
+                        {e.kind && <span className="chip">{e.kind}</span>}
+                        <h3 className="event-title wrap">{e.title}</h3>
+                        {e.place && <p className="place wrap">{e.place}</p>}
+                        {e.place && (
+                          <a className="text-link" href={mapsUrl(e.place)} target="_blank" rel="noopener noreferrer">
+                            地図で開く
+                          </a>
+                        )}
+                      </div>
+                      <div className="event-extra">
+                        {e.bookingNo && (
+                          <p className="booking wrap">
+                            予約番号: <strong>{e.bookingNo}</strong>
+                          </p>
+                        )}
+                        {e.bookingUrl && (
+                          <a className="text-link" href={e.bookingUrl} target="_blank" rel="noopener noreferrer">
+                            予約ページ
+                          </a>
+                        )}
+                        {e.cost != null && <p className="cost">費用 {formatYen(e.cost)}</p>}
+                        {e.memo && <p className="memo wrap">{e.memo}</p>}
+                        <div className="event-actions">
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => {
+                              setEditing({ kind: 'edit', id: e.id });
+                              setMessage(null);
+                            }}
+                            aria-label={`「${e.title}」を編集`}
+                          >
+                            編集
+                          </button>
+                          <button type="button" className="btn btn-danger-outline" onClick={() => setDeleting(e)} aria-label={`「${e.title}」を削除`}>
+                            削除
+                          </button>
+                          {canMove(trip.events, selected, e.id, -1) && (
+                            <button type="button" className="btn btn-icon" onClick={() => move(e.id, -1)} aria-label={`「${e.title}」を1つ上へ移動`}>
+                              ↑
+                            </button>
                           )}
-                        </p>
-                      )}
-                      {e.bookingUrl && (
-                        <a className="text-link" href={e.bookingUrl} target="_blank" rel="noopener noreferrer">
-                          予約ページ
-                        </a>
-                      )}
-                      {e.cost != null && <p className="cost">費用 {formatYen(e.cost)}</p>}
-                      {e.memo && <p className="memo wrap">{e.memo}</p>}
-                      <div className="event-actions">
-                        <button
-                          type="button"
-                          className="btn"
-                          onClick={() => {
-                            setEditing({ kind: 'edit', id: e.id });
-                            setMessage(null);
-                          }}
-                          aria-label={`「${e.title}」を編集`}
-                        >
-                          編集
-                        </button>
-                        <button type="button" className="btn btn-danger-outline" onClick={() => setDeleting(e)} aria-label={`「${e.title}」を削除`}>
-                          削除
-                        </button>
-                        {canMove(trip.events, selected, e.id, -1) && (
-                          <button type="button" className="btn btn-icon" onClick={() => move(e.id, -1)} aria-label={`「${e.title}」を1つ上へ移動`}>
-                            ↑
-                          </button>
-                        )}
-                        {canMove(trip.events, selected, e.id, 1) && (
-                          <button type="button" className="btn btn-icon" onClick={() => move(e.id, 1)} aria-label={`「${e.title}」を1つ下へ移動`}>
-                            ↓
-                          </button>
-                        )}
+                          {canMove(trip.events, selected, e.id, 1) && (
+                            <button type="button" className="btn btn-icon" onClick={() => move(e.id, 1)} aria-label={`「${e.title}」を1つ下へ移動`}>
+                              ↓
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </article>
                   </li>
