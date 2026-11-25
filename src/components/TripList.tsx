@@ -7,6 +7,7 @@ import { ExportSheet, ImportSheet } from './ExchangeSheets';
 import { formatRange } from '../lib/dates';
 import { MAX_FILE_BYTES, parseImport } from '../lib/exchange';
 import { makeId, type Trip } from '../lib/trips';
+import { getLastBackup } from '../lib/storage';
 
 interface Props {
   trips: Trip[];
@@ -15,13 +16,19 @@ interface Props {
   missingTrip: boolean;
 }
 
-type Mode = { kind: 'none' } | { kind: 'create' } | { kind: 'edit'; id: string };
+function backupLabel(d: Date): string {
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  return days <= 0 ? '今日' : `${days}日前`;
+}
+
+type Mode ={ kind: 'none' } | { kind: 'create' } | { kind: 'edit'; id: string };
 
 export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props) {
   const [mode, setMode] = useState<Mode>({ kind: 'none' });
   const [deleting, setDeleting] = useState<Trip | null>(null);
   const [exporting, setExporting] = useState<Trip | null>(null);
   const [importing, setImporting] = useState(false);
+  const [backupAt, setBackupAt] = useState<Date | null>(getLastBackup);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
   const ok = (text: string) => setMessage({ type: 'ok', text });
@@ -72,6 +79,13 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
     <main>
       <h1>旅程ノート</h1>
       <p className="hint">このブラウザに保存されます。別の端末へは書き出し・読み込みで移せます</p>
+      {trips.length > 0 && (
+        <p className={backupAt ? 'hint' : 'hint hint-warn'}>
+          {backupAt
+            ? `最後のバックアップ: ${backupLabel(backupAt)}`
+            : 'まだバックアップがありません。スマホのデータが消えたときに備え、各旅行の「書き出す」でコピーを残してください。'}
+        </p>
+      )}
       {missingTrip && (
         <p className="banner banner-error" role="alert">
           開こうとした旅行が見つかりませんでした(このブラウザには保存されていません)。
@@ -139,7 +153,15 @@ export default function TripList({ trips, onCommit, onOpen, missingTrip }: Props
         <InstallHint />
       </div>
 
-      {exporting && <ExportSheet trip={exporting} onClose={() => setExporting(null)} />}
+      {exporting && (
+        <ExportSheet
+          trip={exporting}
+          onClose={() => {
+            setExporting(null);
+            setBackupAt(getLastBackup());
+          }}
+        />
+      )}
       {importing && <ImportSheet onImport={doImport} onClose={() => setImporting(false)} />}
 
       {deleting && (

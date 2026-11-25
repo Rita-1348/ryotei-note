@@ -41,6 +41,38 @@ export function loadTrips(): LoadResult {
   }
 }
 
+const BACKUP_KEY = 'ryotei-note:last-backup';
+
+/** 最後に書き出し(バックアップ)した時刻。なければ null */
+export function getLastBackup(): Date | null {
+  try {
+    const v = localStorage.getItem(BACKUP_KEY);
+    const d = v ? new Date(v) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+export function markBackup(): void {
+  try {
+    localStorage.setItem(BACKUP_KEY, new Date().toISOString());
+  } catch {
+    /* 記録できなくても書き出し自体は成功 */
+  }
+}
+
+/** ブラウザに「容量不足でも消さないで」と要求する(対応していない端末では何もしない) */
+export async function requestPersistence(): Promise<boolean | null> {
+  try {
+    if (!navigator.storage?.persist) return null;
+    if (await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  } catch {
+    return null;
+  }
+}
+
 /** 失敗時は例外を投げる */
 export function saveTrips(trips: Trip[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: VERSION, trips }));

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import TripList from './components/TripList';
 import TripDetail from './components/TripDetail';
-import { loadTrips, saveTrips } from './lib/storage';
+import { loadTrips, requestPersistence, saveTrips } from './lib/storage';
 import type { Trip } from './lib/trips';
 
 function readHash(): string | null {
@@ -15,6 +15,10 @@ export default function App() {
   const [trips, setTrips] = useState<Trip[]>(initial.trips);
   const [warning, setWarning] = useState<string | undefined>(initial.warning);
   const [openId, setOpenId] = useState<string | null>(readHash);
+
+  useEffect(() => {
+    void requestPersistence();
+  }, []);
 
   useEffect(() => {
     const onHash = () => setOpenId(readHash());

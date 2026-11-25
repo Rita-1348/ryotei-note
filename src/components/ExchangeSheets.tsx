@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import Sheet from './Sheet';
 import { exportFileName, exportTrip, MAX_FILE_BYTES } from '../lib/exchange';
+import { markBackup } from '../lib/storage';
 import type { Trip } from '../lib/trips';
 
 /** Artifact ではページからのダウンロードができないため、そのビルドでは無効にする */
@@ -14,6 +15,7 @@ export function ExportSheet({ trip, onClose }: { trip: Trip; onClose: () => void
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
+      markBackup();
       setStatus('コピーしました。別の端末で「読み込む」に貼り付けてください。');
     } catch {
       areaRef.current?.focus();
@@ -32,6 +34,7 @@ export function ExportSheet({ trip, onClose }: { trip: Trip; onClose: () => void
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      markBackup();
       setStatus('ファイルに書き出しました。');
     } catch {
       setStatus('ファイルの書き出しに失敗しました。コピーを使ってください。');
